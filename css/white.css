@@ -1,26 +1,26 @@
 @font-face {
   font-family: hack-regular;
-  src: url("https://cdn.jsdelivr.net/gh/fushaolei/cdn-white@1.0/font/Hack-Regular.ttf");
+  src: url("font/Hack-Regular.ttf");
 }
 @font-face {
   font-family: hack-italic;
-  src: url("https://cdn.jsdelivr.net/gh/fushaolei/cdn-white@1.0/font/Hack-Italic.ttf");
+  src: url("font/Hack-Italic.ttf");
 }
 @font-face {
   font-family: hack-bold;
-  src: url("https://cdn.jsdelivr.net/gh/fushaolei/cdn-white@1.0/font/Hack-Bold.ttf");
+  src: url("font/Hack-Bold.ttf");
 }
 @font-face {
   font-family: hack-bolditalic;
-  src: url("https://cdn.jsdelivr.net/gh/fushaolei/cdn-white@1.0/font/Hack-BoldItalic.ttf");
+  src: url("font/Hack-BoldItalic.ttf");
 }
 @font-face {
   font-family: Gothic;
-  src: url("https://cdn.jsdelivr.net/gh/fushaolei/cdn-white@1.0/font/GOTHIC.TTF");
+  src: url("font/GOTHIC.TTF");
 }
 @font-face {
   font-family: Merriweather;
-  src: url("https://cdn.jsdelivr.net/gh/fushaolei/cdn-white@1.0/font/Merriweather-Regular-9.ttf");
+  src: url("font/Merriweather-Regular-9.ttf");
 }
 * {
   padding: 0;
@@ -311,6 +311,7 @@ a {
   width: 100%;
   height: 350px;
   object-fit: cover;
+  border-radius: 16px;
 }
 .img-show-post-title {
   text-align: center;
@@ -377,8 +378,8 @@ a {
 .post-cover-img {
   min-width: 100%;
   max-width: 100%;
-  height: 350px;
   object-fit: cover;
+  border-radius: 16x;
 }
 .post-meta {
   display: flex;
@@ -555,7 +556,7 @@ table thead {
 }
 table th,
 table td {
-  padding: 0.9rem;
+  padding: 0.6rem;
   border-width: 0.5px;
   border-style: solid;
   border-color: #f8f8f8;
@@ -580,15 +581,15 @@ pre,
 samp {
   font-size: 0.8em;
   font-weight: normal;
-  font-family: hack-regular;
+  font-family: SimHei;
 }
 .hljs {
-  font-family: hack-regular;
+  font-family: SimHei;
   overflow: scroll;
   font-size: 1em;
 }
 .hljs span {
-  font-family: hack-regular;
+  font-family: SimHei;
 }
 .hljs,
 code {
@@ -601,7 +602,7 @@ code {
   color: #333333;
   padding: 4px 6px;
   margin: 0px 4px;
-  font-family: hack-regular, hack-italic, hack-bold, hack-bolditalic;
+  font-family: SimHei;
 }
 .toc-top {
   border: 1px solid #e3e3e3;
