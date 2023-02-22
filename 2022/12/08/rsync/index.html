@@ -1,0 +1,359 @@
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>  Rsync-自动同步文件到服务器 |    Jihui.</title>
+  <meta name="description" content="欢迎来到继辉的个人技术博客.">
+  <!-- 标签页图标 -->
+  
+  <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+  
+
+  <!-- 图标库 -->
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@2.2.0/fonts/remixicon.css" rel="stylesheet">
+  <!-- 动画库 -->
+  
+  <link rel="stylesheet" href="/css/animate.css"/>
+  
+  <!-- css文件 -->
+  
+<link rel="stylesheet" href="/css/white.css">
+
+  <!-- 代码高亮 -->
+  
+    
+      
+<link rel="stylesheet" href="/css/github.css">
+
+    
+  
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+
+<body>
+
+<div class="menu-outer">
+    <div class="menu-inner">
+      <div class="menu-site-name  animate__animated  animate__fadeInUp">
+        <a href="/">
+          Jihui.
+        </a>
+        
+      </div>
+      <div class="menu-group">
+        <ul class="menu-ul">
+        
+          <a href="/" class="nav-link">
+            <li class="menu-li  animate__animated  animate__fadeInUp">
+              HOME
+            </li>
+          </a>
+        
+          <a href="/archives" class="nav-link">
+            <li class="menu-li  animate__animated  animate__fadeInUp">
+              BLOG
+            </li>
+          </a>
+        
+        
+        
+          <li class="menu-li animate__animated  animate__fadeInUp" id="mobile-menu">
+            <i class="ri-menu-line"></i>
+          </li>
+        
+        </ul>
+
+      </div>
+
+    </div>
+</div>
+<div id="mobile-main" class="animate__animated  animate__fadeIn">
+  <div class="mobile-menu-inner">
+    <div class="mobile-menu-site-name animate__animated  animate__fadeInUp">
+      <a href="/">
+        Jihui.
+      </a>
+    </div>
+    <div class="mobile-menu-group" id="mobile-close">
+      <i class="ri-close-line"></i>
+    </div>
+
+  </div>
+
+  <div class="mobile-menu-div">
+  
+    <a href="/" class="mobile-nav-link">
+      <div class="mobile-menu-child animate__animated  animate__fadeInUp">
+        <span>HOME</span>
+      </div>
+    </a>
+  
+    <a href="/archives" class="mobile-nav-link">
+      <div class="mobile-menu-child animate__animated  animate__fadeInUp">
+        <span>BLOG</span>
+      </div>
+    </a>
+  
+  
+  </div>
+
+
+</div>
+
+<div class="body-outer">
+  <div class="body-inner">
+    
+<article class="post-inner">
+  <div class="post-content-outer">
+    <div class="post-intro">
+      <div class="post-title animate__animated  animate__fadeInUp">rsync-自动同步文件到服务器</div>
+      <div class="meta-intro animate__animated  animate__fadeInUp">12月 08 2022</div>
+      <!-- 
+        <div class="post-cover"><span class="lazyload-img-span"><img data-src="/images/rsync_banner.webp" class="post-cover-img"></span></div>
+       -->
+    </div>
+    <div class="post-content-inner">
+      <div class="post-content-inner-space">
+
+      </div>
+      <div class="post-content-main animate__animated  animate__fadeInUp">
+        <!-- top型目录 -->
+        
+        <p><a target="_blank" rel="noopener" href="http://rsync.samba.org/">rsync</a>是一个开源的文件同步工具，支持本地到远程服务器快速增量更新，一般的<code>linux</code>设备都自带安装；其特点是同步时对文件自动检查，并且支持压缩传输，故比较适合做文件的远程备份。so，我们可以利用<code>rsync</code>和MacOS自带的<code>launchd</code>服务，监听本地文件的更新，实时上传文件到云服务器，做类似iCloud文件自动同步效果。</p>
+<img src='/images/rsync_banner.webp' style='border-radius: 16px'/>
+
+<h2 id="服务端配置"><a href="#服务端配置" class="headerlink" title="服务端配置"></a>服务端配置</h2><p>服务端配置以腾讯云<code>ubuntu</code>服务器为例，进行安装和配置</p>
+<h3 id="安装rsync"><a href="#安装rsync" class="headerlink" title="安装rsync"></a>安装rsync</h3><p>一般的<code>linux</code>服务器都自带安装<code>rsync</code>，故可以跳过安装步骤直接到配置，<code>rsync</code>最好使用<code>root</code>权限安装和配置，可以避免后续一些权限问题。</p>
+<pre><code class="sh">$ sudo -i
+$ which rsync
+$ sudo apt-get install rsync
+</code></pre>
+<h3 id="创建配置文件"><a href="#创建配置文件" class="headerlink" title="创建配置文件"></a>创建配置文件</h3><p>创建配置文件，并贴如以下配置</p>
+<pre><code class="sh">$ vim /etc/rsyncd.conf
+
+uid = root
+gid = root
+use chroot = yes
+
+port 873
+log file = /var/log/rsyncd.log
+pid file = /var/run/rsyncd.pid
+
+[backup]
+path = /home/backup/
+read only = no
+dont comperss = *.gz *.bz2 *.tgz *.zip *.rar *.z
+auth users = backuper
+secrets file = /etc/rsyncd_users.secrets
+</code></pre>
+<p>配置说明: </p>
+<ol>
+<li><code>uid</code>配置root，以root账号运行，配置监听端口873</li>
+<li><code>[backup]</code>是配置的模块，需要写在全局配置之后</li>
+<li><code>auth users</code>配置用户，对应的用户密码记录在<code>secrets file</code>中</li>
+</ol>
+<br/>
+
+<blockquote>
+<p>更多配置可以查看<a target="_blank" rel="noopener" href="https://download.samba.org/pub/rsync/rsyncd.conf.5">rsync.conf</a></p>
+</blockquote>
+<h3 id="放开对应端口"><a href="#放开对应端口" class="headerlink" title="放开对应端口"></a>放开对应端口</h3><p>在腾讯云-&gt;轻量级服务器-&gt;防火墙中，添加上述配置的port端口</p>
+<img src='/images/rsync_port.webp' style='border-radius: 16px'/>
+
+<h3 id="配置用户密码"><a href="#配置用户密码" class="headerlink" title="配置用户密码"></a>配置用户密码</h3><p>创建用户密码文件，需要和上述配置保持一致，</p>
+<pre><code class="sh">$ vim /etc/rsyncd_users.secrets
+# 添加以下内容，如果有多个用户，需要每个一行
+backuper:aA111111
+# 需要给此文件600权限
+$ chmod 600 /etc/rsyncd_users.db
+</code></pre>
+<h3 id="运行rsync"><a href="#运行rsync" class="headerlink" title="运行rsync"></a>运行rsync</h3><p><code>Systemctl</code>是<code>systemd</code>用于管理系统和管理服务的工具，很多linux都有自带安装，使用<code>systemctl</code>，可以启动、停止、重新加载、重启服务，此处我们使用<code>systemctl</code>配置<code>rsync</code>自启动，后续重启服务器就<code>rsync</code>就会自动运行</p>
+<pre><code class="sh">$ systemctl enable rsync   # 配置开机自启动
+$ systemctl start rsync    # 启动rsync
+$ systemctl status rsync   # 查看运行状态
+</code></pre>
+<p>如无意外，服务端配置就成功了；其实<code>rsync</code>支持多种登录方式，比如<code>ssh</code>，可以通过<code>ssh</code>+公钥的方式登录，验证了下，服务端<code>rsync</code>服务未启动也能上传成功。</p>
+<h2 id="本机配置"><a href="#本机配置" class="headerlink" title="本机配置"></a>本机配置</h2><p>相比于服务端，本机作为客户端，几乎不需要配置，了解<code>rsync</code>参数即可，此处我们采用密码文件的方式，进行<code>rsync</code>验证和文件同步；</p>
+<h3 id="使用sh脚本，进行文件同步"><a href="#使用sh脚本，进行文件同步" class="headerlink" title="使用sh脚本，进行文件同步"></a>使用sh脚本，进行文件同步</h3><pre><code class="sh"># 创建本地同步文件夹
+$ mkdir ~/Library/auto-sync 
+# 找个喜欢的地方，创建密码文件
+$ cd  ~/Library/auto-sync
+$ vim .rsync.pass          
+# 填入用户密码，注意，此处只有密码
+aA111111
+# 添加个文件进行测试
+$ vim READMD.md
+给密码文件600权限，否则会报错
+$ chmod 600 .rsync.pass
+# 测试上报
+$ rsync \
+  -avz \
+  --delete \
+  --password-file=/Users/xxx/Library/auto-sync/.rsync.pass \
+  /Users/xxx/Library/auto-sync/     \
+  backuper@host_ip::backup/auto-sync
+</code></pre>
+<p>注意：</p>
+<ol>
+<li><code>/Users/xxx/Library/auto-sync/</code>是本地目录，先不要在<code>Desktop</code>和<code>Document</code>目录下创建，xxx替换成当前登录用户名；</li>
+<li><code>backuper@host_ip::backup/auto-sync</code>是远程目录，<code>backuper</code>是用户名，<code>backup</code>是模块名，需要和服务端保持一致，host_ip替换成你的ip；</li>
+</ol>
+<p>如果没有意外，那就同步成功了，但是文件同步需要手动执行sh脚本，后续我们使用<code>launchd</code>进行自动同步；</p>
+<h3 id="使用launchd自动同步文件"><a href="#使用launchd自动同步文件" class="headerlink" title="使用launchd自动同步文件"></a>使用launchd自动同步文件</h3><p><code>launchd</code>是<code>unix</code>自带的自启动服务管理工具，大概分为4种job：</p>
+<table>
+<thead>
+<tr>
+<th align="left">job</th>
+<th align="left">desc</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="left">~/Library/LaunchAgents</td>
+<td align="left">Per-user agents provided by the user</td>
+</tr>
+<tr>
+<td align="left">/Library/LaunchAgents</td>
+<td align="left">Per-user agents provided by the administrator.</td>
+</tr>
+<tr>
+<td align="left">/System/Library/LaunchAgents</td>
+<td align="left">Mac OS X Per-user agents.</td>
+</tr>
+<tr>
+<td align="left">/System/Library/LaunchDaemons</td>
+<td align="left">Mac OS X System wide daemons</td>
+</tr>
+</tbody></table>
+<p>我们可以添加一个自定义服务到<code>~/Library/LaunchAgents</code>中，监听文件变化，自动同步文件到服务器</p>
+<pre><code class="xml">$ vim ~/Library/LaunchAgents/com.jihui.rsync.plist
+
+贴入一下内容
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE plist PUBLIC &quot;-//Apple//DTD PLIST 1.0//EN&quot; 
+    &quot;http://www.apple.com/DTDs/PropertyList-1.0.dtd&quot;
+&gt;
+&lt;plist version=&quot;1.0&quot;&gt;
+&lt;dict&gt;
+        &lt;key&gt;KeepAlive&lt;/key&gt;
+        &lt;true/&gt;
+        &lt;key&gt;Label&lt;/key&gt;
+        &lt;string&gt;com.jihui.rsync&lt;/string&gt;
+        &lt;key&gt;ProgramArguments&lt;/key&gt;
+        &lt;array&gt;
+                &lt;string&gt;rsync&lt;/string&gt;
+                &lt;string&gt;-avz&lt;/string&gt;
+                &lt;string&gt;--delete&lt;/string&gt;
+                &lt;string&gt;--password-file=/Users/xxx/Library/auto-sync/.rsync.pass&lt;/string&gt;
+                &lt;string&gt;/Users/xxx/Library/auto-sync/&lt;/string&gt;
+                &lt;string&gt;backuper@host_ip::backup/auto-sync&lt;/string&gt;
+        &lt;/array&gt;
+        &lt;key&gt;StandardErrorPath&lt;/key&gt;
+        &lt;string&gt;/Users/xxx/Library/Logs/rsync.log&lt;/string&gt;
+        &lt;key&gt;StandardOutPath&lt;/key&gt;
+        &lt;string&gt;/Users/xxx/Library/Logs/rsync.log&lt;/string&gt;
+        &lt;key&gt;WatchPaths&lt;/key&gt;
+        &lt;array&gt;
+                &lt;string&gt;/Users/xxx/Library/auto-sync/&lt;/string&gt;
+        &lt;/array&gt;
+&lt;/dict&gt;
+&lt;/plist&gt;
+
+# 激活job，或者执行电脑重启操作
+$ launchctl load ~/Library/LaunchAgents/com.jihui.rsync.plist
+</code></pre>
+<p>同样，xxx和host_ip替换成对应的值；</p>
+<p>字段解释：</p>
+<ol>
+<li><code>KeepAlive</code>，进程守护，挂掉自动拉起</li>
+<li><code>Label</code>当前<code>job</code>的名称，不要重复</li>
+<li><code>ProgramArgument</code>当前<code>job</code>的执行脚本</li>
+<li><code>StandardErrorPath</code>，log输出文件，调试过程中可以查看</li>
+<li><code>WatchPaths</code>，数组，监听的文件变化，触发执行<code>job</code></li>
+</ol>
+<p>自此，如无意外，就可以自动同步<code>auto-sync</code>文件夹中的文件到远程服务器了</p>
+<p>注意，由于MacOS高版本对文件读写权限的调整，导致<code>Desktop</code>和<code>Document</code>文件夹<code>launchd</code>无权限访问，会导致<code>job</code>执行错误，可以底部链接；</p>
+<h2 id="参考链接"><a href="#参考链接" class="headerlink" title="参考链接"></a>参考链接</h2><ol>
+<li><a target="_blank" rel="noopener" href="https://rsync.samba.org/">https://rsync.samba.org/</a></li>
+<li><a target="_blank" rel="noopener" href="http://www.ruanyifeng.com/blog/2020/08/rsync.html">http://www.ruanyifeng.com/blog/2020/08/rsync.html</a></li>
+<li><a target="_blank" rel="noopener" href="https://blog.csdn.net/qq_38483583/article/details/123608484">https://blog.csdn.net/qq_38483583/article/details/123608484</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.unix.com/man-page/osx/5/launchd.plist/">https://www.unix.com/man-page/osx/5/launchd.plist/</a></li>
+<li><a target="_blank" rel="noopener" href="https://www.unix.com/man-page/osx/1/launchctl/">https://www.unix.com/man-page/osx/1/launchctl/</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/583030663">https://zhuanlan.zhihu.com/p/583030663</a></li>
+</ol>
+
+        <!-- 分类文章 -->
+        
+      </div>
+      <div class="post-content-inner-space">
+        
+          <div class="space-toc-main animate__animated  animate__fadeInUp">
+            <ol class="space-toc"><li class="space-toc-item space-toc-level-2"><a class="space-toc-link" href="#%E6%9C%8D%E5%8A%A1%E7%AB%AF%E9%85%8D%E7%BD%AE"><span class="space-toc-text">服务端配置</span></a><ol class="space-toc-child"><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E5%AE%89%E8%A3%85rsync"><span class="space-toc-text">安装rsync</span></a></li><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E5%88%9B%E5%BB%BA%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6"><span class="space-toc-text">创建配置文件</span></a></li><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E6%94%BE%E5%BC%80%E5%AF%B9%E5%BA%94%E7%AB%AF%E5%8F%A3"><span class="space-toc-text">放开对应端口</span></a></li><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E9%85%8D%E7%BD%AE%E7%94%A8%E6%88%B7%E5%AF%86%E7%A0%81"><span class="space-toc-text">配置用户密码</span></a></li><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E8%BF%90%E8%A1%8Crsync"><span class="space-toc-text">运行rsync</span></a></li></ol></li><li class="space-toc-item space-toc-level-2"><a class="space-toc-link" href="#%E6%9C%AC%E6%9C%BA%E9%85%8D%E7%BD%AE"><span class="space-toc-text">本机配置</span></a><ol class="space-toc-child"><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E4%BD%BF%E7%94%A8sh%E8%84%9A%E6%9C%AC%EF%BC%8C%E8%BF%9B%E8%A1%8C%E6%96%87%E4%BB%B6%E5%90%8C%E6%AD%A5"><span class="space-toc-text">使用sh脚本，进行文件同步</span></a></li><li class="space-toc-item space-toc-level-3"><a class="space-toc-link" href="#%E4%BD%BF%E7%94%A8launchd%E8%87%AA%E5%8A%A8%E5%90%8C%E6%AD%A5%E6%96%87%E4%BB%B6"><span class="space-toc-text">使用launchd自动同步文件</span></a></li></ol></li><li class="space-toc-item space-toc-level-2"><a class="space-toc-link" href="#%E5%8F%82%E8%80%83%E9%93%BE%E6%8E%A5"><span class="space-toc-text">参考链接</span></a></li></ol>
+           </div>
+        
+      </div>
+   </div>
+    <!-- 评论 -->
+    
+  </div>
+</article>
+  </div>
+</div>
+
+
+
+<!-- 如果是home模式的话，不在首页就显示footer，如果不是home模式的话 所有都显示footer -->
+
+  <div class="footer-outer animate__animated  animate__fadeInUp">
+    <div class="footer-inner">
+    <div class="footer-text">
+    <p>Power by <a target="_blank" rel="noopener" href="http://hexo.io/">Hexo</a> Theme by <a target="_blank" rel="noopener" href="https://github.com/FuShaoLei/hexo-theme-white">White</a></p>
+
+    </div>
+    <div class="footer-contact">
+    <ul class="footer-ul">
+        
+        <li class="footer-li">
+            <a href="https://github.com/John251314" target="_blank">
+                <i class="ri-github-line"></i>
+            </a>
+        </li>
+        
+        <li class="footer-li">
+            <a href="mailto:lijihui2513114@163.com" target="_blank">
+                <i class="ri-mail-line"></i>
+            </a>
+        </li>
+        
+        <li class="footer-li">
+            <a href="tel:13260885032" target="_blank">
+                <i class="ri-phone-line"></i>
+            </a>
+        </li>
+        
+    </ul>
+    </div>
+    </div>
+</div>
+
+
+
+
+
+
+<script src="/js/white.js"></script>
+
+
+
+    
+      
+<script src="/js/highlight.min.js"></script>
+
+      <script>hljs.initHighlightingOnLoad();</script>
+    
+
+</body>
+</html>
